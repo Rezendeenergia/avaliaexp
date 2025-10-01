@@ -1,0 +1,7 @@
+streamlit
+requests
+pandas
+msal
+openpyxl
+reportlab
+Pillow
