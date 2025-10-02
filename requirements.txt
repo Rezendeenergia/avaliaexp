@@ -4,5 +4,6 @@ pandas
 msal
 openpyxl
 reportlab
-sqlite
+sqlite3
 Pillow
+
