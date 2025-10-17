@@ -359,7 +359,7 @@ def download_excel_sharepoint():
 
 # Identificar avaliadores
 def identificar_avaliadores(df):
-    cargos_avaliadores = ['SUPERVISOR', 'LIDER DE FROTA', 'GERENTE OPERACIONAL', 'COORDENADOR OPERACIONAL']
+    cargos_avaliadores = ['SUPERVISOR', 'LIDER DE FROTA', 'GERENTE OPERACIONAL', 'COORDENADOR OPERACIONAL', 'ANALISTA FINANCEIRO', 'GERENTE DE QSMS']
     avaliadores = df[df.iloc[:, 8].str.upper().isin(cargos_avaliadores)]
     return sorted(avaliadores.iloc[:, 0].tolist())
 
