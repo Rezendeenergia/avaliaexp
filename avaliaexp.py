@@ -359,7 +359,7 @@ def download_excel_sharepoint():
 
 # Identificar avaliadores
 def identificar_avaliadores(df):
-    cargos_avaliadores = ['SUPERVISOR', 'LIDER DE FROTA', 'GERENTE OPERACIONAL', 'COORDENADOR OPERACIONAL', 'ANALISTA FINANCEIRO', 'GERENTE DE QSMS']
+    cargos_avaliadores = ['GESTORA DE RH E DP','SUPERVISOR', 'LIDER DE FROTA', 'GERENTE OPERACIONAL', 'COORDENADOR OPERACIONAL', 'ANALISTA FINANCEIRO', 'GERENTE DE QSMS']
     avaliadores = df[df.iloc[:, 8].str.upper().isin(cargos_avaliadores)]
     return sorted(avaliadores.iloc[:, 0].tolist())
 
@@ -743,3 +743,4 @@ st.markdown(
     "<div style='text-align: center; color: #666;'>Sistema de Avaliação de Experiência - Rezende Energia © 2025</div>",
     unsafe_allow_html=True
 )
+
