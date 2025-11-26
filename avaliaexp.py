@@ -418,18 +418,24 @@ def identificar_colaboradores_para_avaliacao(df):
     for idx, row in df.iterrows():
         try:
             nome = row.iloc[0]
+            cargo = str(row.iloc[8]) if pd.notna(row.iloc[8]) else "Cargo não informado"
+            regiao = str(row.iloc[12]) if pd.notna(row.iloc[12]) else "Região não informada"
             data_admissao = pd.to_datetime(row.iloc[9])
             dias_desde_admissao = (hoje - data_admissao).days
 
             if 37 <= dias_desde_admissao <= 43:
                 colaboradores_40_dias.append({
                     'nome': nome,
+                    'cargo': cargo,
+                    'regiao': regiao,
                     'data_admissao': data_admissao.strftime('%d/%m/%Y'),
                     'dias_empresa': dias_desde_admissao
                 })
             elif 77 <= dias_desde_admissao <= 83:
                 colaboradores_80_dias.append({
                     'nome': nome,
+                    'cargo': cargo,
+                    'regiao': regiao,
                     'data_admissao': data_admissao.strftime('%d/%m/%Y'),
                     'dias_empresa': dias_desde_admissao
                 })
@@ -524,7 +530,7 @@ if menu == "Dashboard":
                 avaliado = ja_foi_avaliado(col['nome'], "40 dias")
                 status = "✅" if avaliado else "⏳"
                 st.write(
-                    f"{status} **{col['nome']}** - Admitido em {col['data_admissao']} ({col['dias_empresa']} dias)")
+                    f"{status} **[{col['regiao']}] [{col['cargo']}] {col['nome']}** - Admitido em {col['data_admissao']} ({col['dias_empresa']} dias)")
         else:
             st.info("Nenhum colaborador no período de 40 dias")
 
@@ -535,7 +541,7 @@ if menu == "Dashboard":
                 avaliado = ja_foi_avaliado(col['nome'], "80 dias")
                 status = "✅" if avaliado else "⏳"
                 st.write(
-                    f"{status} **{col['nome']}** - Admitido em {col['data_admissao']} ({col['dias_empresa']} dias)")
+                    f"{status} **[{col['regiao']}] [{col['cargo']}] {col['nome']}** - Admitido em {col['data_admissao']} ({col['dias_empresa']} dias)")
         else:
             st.info("Nenhum colaborador no período de 80 dias")
 
@@ -849,6 +855,7 @@ st.markdown(
     "<div style='text-align: center; color: #666;'>Sistema de Avaliação de Experiência - Rezende Energia © 2025</div>",
     unsafe_allow_html=True
 )
+
 
 
 
