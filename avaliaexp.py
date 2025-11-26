@@ -357,11 +357,33 @@ def download_excel_sharepoint():
         return None
 
 
-# Identificar avaliadores
+# Identificar avaliadores - ATUALIZADO COM NOVOS COORDENADORES
 def identificar_avaliadores(df):
-    cargos_avaliadores = ['GESTORA DE RH E DP','SUPERVISOR', 'LIDER DE FROTA', 'GERENTE OPERACIONAL', 'COORDENADOR OPERACIONAL', 'ANALISTA FINANCEIRO', 'GERENTE DE QSMS']
+    cargos_avaliadores = [
+        'SUPERVISOR', 
+        'LIDER DE FROTA', 
+        'GERENTE OPERACIONAL', 
+        'COORDENADOR OPERACIONAL', 
+        'ANALISTA FINANCEIRO', 
+        'GERENTE DE QSMS',
+        'GESTORA DE DEPARTEMENTO PESSOAL/ RECURSOS HUMANOS',
+        'GESTORA DE DEPARTAMENTO PESSOAL/ RECURSOS HUMANOS'  # variação de escrita
+    ]
+    
+    # Buscar avaliadores pelos cargos na planilha
     avaliadores = df[df.iloc[:, 8].str.upper().isin(cargos_avaliadores)]
-    return sorted(avaliadores.iloc[:, 0].tolist())
+    lista_avaliadores = avaliadores.iloc[:, 0].tolist()
+    
+    # Adicionar avaliadores fixos (garantindo que sempre apareçam)
+    avaliadores_fixos = [
+        'GABRIELLE ELLIBOX DE LIRA',
+        'VINICIUS OLIVEIRA AMARAL DE SOUZA'
+    ]
+    
+    # Combinar listas e remover duplicatas
+    lista_completa = list(set(lista_avaliadores + avaliadores_fixos))
+    
+    return sorted(lista_completa)
 
 
 # Identificar colaboradores para avaliação
@@ -482,9 +504,16 @@ elif menu == "Nova Avaliação":
         # Buscar cargo do avaliador
         cargo_avaliador = ""
         if avaliador:
-            linha_avaliador = df[df.iloc[:, 0] == avaliador]
-            if not linha_avaliador.empty:
-                cargo_avaliador = str(linha_avaliador.iloc[0, 8]) if pd.notna(linha_avaliador.iloc[0, 8]) else ""
+            # Verificar se é um dos avaliadores fixos
+            if avaliador == 'GABRIELLE ELLIBOX DE LIRA':
+                cargo_avaliador = 'GESTORA DE DEPARTEMENTO PESSOAL/ RECURSOS HUMANOS'
+            elif avaliador == 'VINICIUS OLIVEIRA AMARAL DE SOUZA':
+                cargo_avaliador = 'SUPERVISOR'
+            else:
+                # Buscar na planilha
+                linha_avaliador = df[df.iloc[:, 0] == avaliador]
+                if not linha_avaliador.empty:
+                    cargo_avaliador = str(linha_avaliador.iloc[0, 8]) if pd.notna(linha_avaliador.iloc[0, 8]) else ""
         st.text_input("Cargo do Avaliador", value=cargo_avaliador, disabled=True, key="cargo_avaliador_display")
 
     with col2:
@@ -743,4 +772,5 @@ st.markdown(
     "<div style='text-align: center; color: #666;'>Sistema de Avaliação de Experiência - Rezende Energia © 2025</div>",
     unsafe_allow_html=True
 )
+
 
