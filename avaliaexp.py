@@ -251,51 +251,25 @@ def init_db():
     conn = sqlite3.connect('avaliacoes.db')
     c = conn.cursor()
     c.execute('''
-              CREATE TABLE IF NOT EXISTS avaliacoes
-              (
-                  id
-                  INTEGER
-                  PRIMARY
-                  KEY
-                  AUTOINCREMENT,
-                  avaliador
-                  TEXT
-                  NOT
-                  NULL,
-                  colaborador
-                  TEXT
-                  NOT
-                  NULL,
-                  cargo
-                  TEXT,
-                  cargo_avaliador
-                  TEXT,
-                  regional
-                  TEXT,
-                  tipo_avaliacao
-                  TEXT,
-                  adaptacao
-                  TEXT,
-                  interesse
-                  TEXT,
-                  relacionamento
-                  TEXT,
-                  capacidade
-                  TEXT,
-                  classificacao
-                  TEXT,
-                  definicao
-                  TEXT,
-                  regiao_avaliador
-                  TEXT,
-                  regiao_colaborador
-                  TEXT,
-                  data_avaliacao
-                  TIMESTAMP
-                  DEFAULT
-                  CURRENT_TIMESTAMP
-              )
-              ''')
+        CREATE TABLE IF NOT EXISTS avaliacoes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            avaliador TEXT NOT NULL,
+            colaborador TEXT NOT NULL,
+            cargo TEXT,
+            cargo_avaliador TEXT,
+            regional TEXT,
+            tipo_avaliacao TEXT,
+            adaptacao TEXT,
+            interesse TEXT,
+            relacionamento TEXT,
+            capacidade TEXT,
+            classificacao TEXT,
+            definicao TEXT,
+            regiao_avaliador TEXT,
+            regiao_colaborador TEXT,
+            data_avaliacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
 
     # Verificar e adicionar colunas se não existirem
     try:
@@ -303,13 +277,13 @@ def init_db():
     except sqlite3.OperationalError:
         c.execute("ALTER TABLE avaliacoes ADD COLUMN cargo_avaliador TEXT")
         conn.commit()
-
+    
     try:
         c.execute("SELECT regiao_avaliador FROM avaliacoes LIMIT 1")
     except sqlite3.OperationalError:
         c.execute("ALTER TABLE avaliacoes ADD COLUMN regiao_avaliador TEXT")
         conn.commit()
-
+    
     try:
         c.execute("SELECT regiao_colaborador FROM avaliacoes LIMIT 1")
     except sqlite3.OperationalError:
@@ -324,11 +298,12 @@ def salvar_avaliacao(dados):
     conn = sqlite3.connect('avaliacoes.db')
     c = conn.cursor()
     c.execute('''
-              INSERT INTO avaliacoes (avaliador, colaborador, cargo, cargo_avaliador, regional, tipo_avaliacao,
-                                      adaptacao, interesse, relacionamento, capacidade,
-                                      classificacao, definicao, regiao_avaliador, regiao_colaborador)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-              ''', dados)
+        INSERT INTO avaliacoes (
+            avaliador, colaborador, cargo, cargo_avaliador, regional, tipo_avaliacao,
+            adaptacao, interesse, relacionamento, capacidade, 
+            classificacao, definicao, regiao_avaliador, regiao_colaborador
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', dados)
     conn.commit()
     conn.close()
 
@@ -346,11 +321,9 @@ def ja_foi_avaliado(colaborador, tipo_avaliacao):
     conn = sqlite3.connect('avaliacoes.db')
     c = conn.cursor()
     c.execute('''
-              SELECT COUNT(*)
-              FROM avaliacoes
-              WHERE colaborador = ?
-                AND tipo_avaliacao = ?
-              ''', (colaborador, tipo_avaliacao))
+        SELECT COUNT(*) FROM avaliacoes 
+        WHERE colaborador = ? AND tipo_avaliacao = ?
+    ''', (colaborador, tipo_avaliacao))
     count = c.fetchone()[0]
     conn.close()
     return count > 0
@@ -401,30 +374,38 @@ def download_excel_sharepoint():
 
 # Identificar avaliadores - ATUALIZADO COM NOVOS COORDENADORES
 def identificar_avaliadores(df):
+    # Verificar se df é válido
+    if df is None or df.empty:
+        return []
+    
     cargos_avaliadores = [
-        'SUPERVISOR',
-        'LIDER DE FROTA',
-        'GERENTE OPERACIONAL',
-        'COORDENADOR OPERACIONAL',
-        'ANALISTA FINANCEIRO',
+        'SUPERVISOR', 
+        'LIDER DE FROTA', 
+        'GERENTE OPERACIONAL', 
+        'COORDENADOR OPERACIONAL', 
+        'ANALISTA FINANCEIRO', 
         'GERENTE DE QSMS',
         'GESTORA DE DEPARTEMENTO PESSOAL/ RECURSOS HUMANOS',
         'GESTORA DE DEPARTAMENTO PESSOAL/ RECURSOS HUMANOS'  # variação de escrita
     ]
-
-    # Buscar avaliadores pelos cargos na planilha
-    avaliadores = df[df.iloc[:, 8].str.upper().isin(cargos_avaliadores)]
-    lista_avaliadores = avaliadores.iloc[:, 0].tolist()
-
+    
+    try:
+        # Buscar avaliadores pelos cargos na planilha
+        avaliadores = df[df.iloc[:, 8].str.upper().isin(cargos_avaliadores)]
+        lista_avaliadores = avaliadores.iloc[:, 0].tolist()
+    except Exception as e:
+        st.warning(f"Erro ao buscar avaliadores na planilha: {e}")
+        lista_avaliadores = []
+    
     # Adicionar avaliadores fixos (garantindo que sempre apareçam)
     avaliadores_fixos = [
         'GABRIELLE ELLIBOX DE LIRA',
         'VINICIUS OLIVEIRA AMARAL DE SOUZA'
     ]
-
+    
     # Combinar listas e remover duplicatas
     lista_completa = list(set(lista_avaliadores + avaliadores_fixos))
-
+    
     return sorted(lista_completa)
 
 
@@ -477,12 +458,40 @@ with st.spinner("Carregando dados do SharePoint..."):
     df = download_excel_sharepoint()
 
 if df is None:
-    st.error("❌ Erro ao carregar dados do SharePoint. Verifique as credenciais.")
+    st.error("❌ Erro ao carregar dados do SharePoint.")
+    st.warning("**Possíveis causas:**")
+    st.markdown("""
+    - Credenciais Azure AD incorretas ou expiradas
+    - Problemas de conexão com a internet
+    - Arquivo 'Base de Colaboradores - Rezende Energia' não encontrado no SharePoint
+    - Permissões insuficientes no SharePoint
+    """)
+    st.info("💡 **Soluções:**")
+    st.markdown("""
+    1. Verifique o arquivo `.streamlit/secrets.toml`
+    2. Confirme as credenciais: CLIENT_ID, CLIENT_SECRET, TENANT_ID
+    3. Verifique se o arquivo existe no SharePoint: Sites > Intranet
+    4. Tente recarregar a página
+    """)
+    
+    # Mostrar botão para recarregar
+    if st.button("🔄 Tentar Recarregar", use_container_width=True):
+        st.cache_data.clear()
+        st.rerun()
+    
+    st.stop()
+
+if df.empty:
+    st.error("❌ O arquivo do SharePoint está vazio.")
     st.stop()
 
 # DASHBOARD
 if menu == "Dashboard":
     st.header("📊 Dashboard de Avaliações")
+
+    if df is None or df.empty:
+        st.error("❌ Não foi possível carregar os dados. Verifique a conexão com o SharePoint.")
+        st.stop()
 
     avaliadores = identificar_avaliadores(df)
     colab_40, colab_80 = identificar_colaboradores_para_avaliacao(df)
@@ -534,6 +543,10 @@ if menu == "Dashboard":
 elif menu == "Nova Avaliação":
     st.header("📝 Nova Avaliação de Experiência")
 
+    if df is None or df.empty:
+        st.error("❌ Não foi possível carregar os dados. Verifique a conexão com o SharePoint.")
+        st.stop()
+
     avaliadores = identificar_avaliadores(df)
     todos_colaboradores = sorted(df.iloc[:, 0].dropna().tolist())
 
@@ -566,9 +579,9 @@ elif menu == "Nova Avaliação":
                 if not linha_avaliador.empty:
                     cargo_avaliador = str(linha_avaliador.iloc[0, 8]) if pd.notna(linha_avaliador.iloc[0, 8]) else ""
                     regiao_avaliador = str(linha_avaliador.iloc[0, 12]) if pd.notna(linha_avaliador.iloc[0, 12]) else ""
-
-        st.text_input("Cargo do Avaliador", value=cargo_avaliador, disabled=True, key="cargo_avaliador_display")
-        st.text_input("Região do Avaliador", value=regiao_avaliador, disabled=True, key="regiao_avaliador_display")
+        
+        st.text_input("Cargo do Avaliador", value=cargo_avaliador, disabled=True, key=f"cargo_avaliador_{avaliador}")
+        st.text_input("Região do Avaliador", value=regiao_avaliador, disabled=True, key=f"regiao_avaliador_{avaliador}")
 
     with col2:
         colaborador = st.selectbox("Nome do colaborador *", todos_colaboradores)
@@ -579,12 +592,10 @@ elif menu == "Nova Avaliação":
             linha_colaborador = df[df.iloc[:, 0] == colaborador]
             if not linha_colaborador.empty:
                 cargo_colaborador = str(linha_colaborador.iloc[0, 8]) if pd.notna(linha_colaborador.iloc[0, 8]) else ""
-                regiao_colaborador = str(linha_colaborador.iloc[0, 12]) if pd.notna(
-                    linha_colaborador.iloc[0, 12]) else ""
-
-        st.text_input("Cargo do Colaborador *", value=cargo_colaborador, disabled=True, key="cargo_colaborador_display")
-        st.text_input("Região do Colaborador", value=regiao_colaborador, disabled=True,
-                      key="regiao_colaborador_display")
+                regiao_colaborador = str(linha_colaborador.iloc[0, 12]) if pd.notna(linha_colaborador.iloc[0, 12]) else ""
+        
+        st.text_input("Cargo do Colaborador *", value=cargo_colaborador, disabled=True, key=f"cargo_colaborador_{colaborador}")
+        st.text_input("Região do Colaborador", value=regiao_colaborador, disabled=True, key=f"regiao_colaborador_{colaborador}")
 
     tipo_avaliacao = st.radio("Avaliação de:", ["40 dias", "80 dias"])
 
@@ -838,6 +849,7 @@ st.markdown(
     "<div style='text-align: center; color: #666;'>Sistema de Avaliação de Experiência - Rezende Energia © 2025</div>",
     unsafe_allow_html=True
 )
+
 
 
 
