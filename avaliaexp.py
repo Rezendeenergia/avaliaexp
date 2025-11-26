@@ -153,9 +153,11 @@ def gerar_pdf_avaliacao(dados_avaliacao, nome_arquivo=None):
         ['', ''],
         ['Avaliador:', dados_avaliacao['avaliador']],
         ['Cargo do Avaliador:', dados_avaliacao['cargo_avaliador']],
+        ['Região do Avaliador:', dados_avaliacao.get('regiao_avaliador', '')],
         ['', ''],
         ['Colaborador:', dados_avaliacao['colaborador']],
         ['Cargo do Colaborador:', dados_avaliacao['cargo']],
+        ['Região do Colaborador:', dados_avaliacao.get('regiao_colaborador', '')],
     ]
 
     table_info = Table(info_basica, colWidths=[5 * cm, 12 * cm])
@@ -249,30 +251,69 @@ def init_db():
     conn = sqlite3.connect('avaliacoes.db')
     c = conn.cursor()
     c.execute('''
-        CREATE TABLE IF NOT EXISTS avaliacoes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            avaliador TEXT NOT NULL,
-            colaborador TEXT NOT NULL,
-            cargo TEXT,
-            cargo_avaliador TEXT,
-            regional TEXT,
-            tipo_avaliacao TEXT,
-            adaptacao TEXT,
-            interesse TEXT,
-            relacionamento TEXT,
-            capacidade TEXT,
-            classificacao TEXT,
-            definicao TEXT,
-            data_avaliacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
+              CREATE TABLE IF NOT EXISTS avaliacoes
+              (
+                  id
+                  INTEGER
+                  PRIMARY
+                  KEY
+                  AUTOINCREMENT,
+                  avaliador
+                  TEXT
+                  NOT
+                  NULL,
+                  colaborador
+                  TEXT
+                  NOT
+                  NULL,
+                  cargo
+                  TEXT,
+                  cargo_avaliador
+                  TEXT,
+                  regional
+                  TEXT,
+                  tipo_avaliacao
+                  TEXT,
+                  adaptacao
+                  TEXT,
+                  interesse
+                  TEXT,
+                  relacionamento
+                  TEXT,
+                  capacidade
+                  TEXT,
+                  classificacao
+                  TEXT,
+                  definicao
+                  TEXT,
+                  regiao_avaliador
+                  TEXT,
+                  regiao_colaborador
+                  TEXT,
+                  data_avaliacao
+                  TIMESTAMP
+                  DEFAULT
+                  CURRENT_TIMESTAMP
+              )
+              ''')
 
-    # Verificar e adicionar coluna cargo_avaliador se não existir
+    # Verificar e adicionar colunas se não existirem
     try:
         c.execute("SELECT cargo_avaliador FROM avaliacoes LIMIT 1")
     except sqlite3.OperationalError:
-        # Coluna não existe, vamos adicioná-la
         c.execute("ALTER TABLE avaliacoes ADD COLUMN cargo_avaliador TEXT")
+        conn.commit()
+
+    try:
+        c.execute("SELECT regiao_avaliador FROM avaliacoes LIMIT 1")
+    except sqlite3.OperationalError:
+        c.execute("ALTER TABLE avaliacoes ADD COLUMN regiao_avaliador TEXT")
+        conn.commit()
+
+    try:
+        c.execute("SELECT regiao_colaborador FROM avaliacoes LIMIT 1")
+    except sqlite3.OperationalError:
+        c.execute("ALTER TABLE avaliacoes ADD COLUMN regiao_colaborador TEXT")
         conn.commit()
 
     conn.close()
@@ -283,12 +324,11 @@ def salvar_avaliacao(dados):
     conn = sqlite3.connect('avaliacoes.db')
     c = conn.cursor()
     c.execute('''
-        INSERT INTO avaliacoes (
-            avaliador, colaborador, cargo, cargo_avaliador, regional, tipo_avaliacao,
-            adaptacao, interesse, relacionamento, capacidade, 
-            classificacao, definicao
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', dados)
+              INSERT INTO avaliacoes (avaliador, colaborador, cargo, cargo_avaliador, regional, tipo_avaliacao,
+                                      adaptacao, interesse, relacionamento, capacidade,
+                                      classificacao, definicao, regiao_avaliador, regiao_colaborador)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              ''', dados)
     conn.commit()
     conn.close()
 
@@ -306,9 +346,11 @@ def ja_foi_avaliado(colaborador, tipo_avaliacao):
     conn = sqlite3.connect('avaliacoes.db')
     c = conn.cursor()
     c.execute('''
-        SELECT COUNT(*) FROM avaliacoes 
-        WHERE colaborador = ? AND tipo_avaliacao = ?
-    ''', (colaborador, tipo_avaliacao))
+              SELECT COUNT(*)
+              FROM avaliacoes
+              WHERE colaborador = ?
+                AND tipo_avaliacao = ?
+              ''', (colaborador, tipo_avaliacao))
     count = c.fetchone()[0]
     conn.close()
     return count > 0
@@ -360,29 +402,29 @@ def download_excel_sharepoint():
 # Identificar avaliadores - ATUALIZADO COM NOVOS COORDENADORES
 def identificar_avaliadores(df):
     cargos_avaliadores = [
-        'SUPERVISOR', 
-        'LIDER DE FROTA', 
-        'GERENTE OPERACIONAL', 
-        'COORDENADOR OPERACIONAL', 
-        'ANALISTA FINANCEIRO', 
+        'SUPERVISOR',
+        'LIDER DE FROTA',
+        'GERENTE OPERACIONAL',
+        'COORDENADOR OPERACIONAL',
+        'ANALISTA FINANCEIRO',
         'GERENTE DE QSMS',
-        'GESTORA DE DEPARTAMENTO PESSOAL/ RECURSOS HUMANOS',
+        'GESTORA DE DEPARTEMENTO PESSOAL/ RECURSOS HUMANOS',
         'GESTORA DE DEPARTAMENTO PESSOAL/ RECURSOS HUMANOS'  # variação de escrita
     ]
-    
+
     # Buscar avaliadores pelos cargos na planilha
     avaliadores = df[df.iloc[:, 8].str.upper().isin(cargos_avaliadores)]
     lista_avaliadores = avaliadores.iloc[:, 0].tolist()
-    
+
     # Adicionar avaliadores fixos (garantindo que sempre apareçam)
     avaliadores_fixos = [
         'GABRIELLE ELLIBOX DE LIRA',
         'VINICIUS OLIVEIRA AMARAL DE SOUZA'
     ]
-    
+
     # Combinar listas e remover duplicatas
     lista_completa = list(set(lista_avaliadores + avaliadores_fixos))
-    
+
     return sorted(lista_completa)
 
 
@@ -501,30 +543,48 @@ elif menu == "Nova Avaliação":
 
     with col1:
         avaliador = st.selectbox("Supervisor/Coordenador (Avaliador) *", avaliadores)
-        # Buscar cargo do avaliador
+        # Buscar cargo e região do avaliador
         cargo_avaliador = ""
+        regiao_avaliador = ""
         if avaliador:
             # Verificar se é um dos avaliadores fixos
             if avaliador == 'GABRIELLE ELLIBOX DE LIRA':
                 cargo_avaliador = 'GESTORA DE DEPARTEMENTO PESSOAL/ RECURSOS HUMANOS'
+                # Buscar região na planilha se existir
+                linha_avaliador = df[df.iloc[:, 0] == avaliador]
+                if not linha_avaliador.empty:
+                    regiao_avaliador = str(linha_avaliador.iloc[0, 12]) if pd.notna(linha_avaliador.iloc[0, 12]) else ""
             elif avaliador == 'VINICIUS OLIVEIRA AMARAL DE SOUZA':
                 cargo_avaliador = 'SUPERVISOR'
+                # Buscar região na planilha se existir
+                linha_avaliador = df[df.iloc[:, 0] == avaliador]
+                if not linha_avaliador.empty:
+                    regiao_avaliador = str(linha_avaliador.iloc[0, 12]) if pd.notna(linha_avaliador.iloc[0, 12]) else ""
             else:
                 # Buscar na planilha
                 linha_avaliador = df[df.iloc[:, 0] == avaliador]
                 if not linha_avaliador.empty:
                     cargo_avaliador = str(linha_avaliador.iloc[0, 8]) if pd.notna(linha_avaliador.iloc[0, 8]) else ""
+                    regiao_avaliador = str(linha_avaliador.iloc[0, 12]) if pd.notna(linha_avaliador.iloc[0, 12]) else ""
+
         st.text_input("Cargo do Avaliador", value=cargo_avaliador, disabled=True, key="cargo_avaliador_display")
+        st.text_input("Região do Avaliador", value=regiao_avaliador, disabled=True, key="regiao_avaliador_display")
 
     with col2:
         colaborador = st.selectbox("Nome do colaborador *", todos_colaboradores)
-        # Buscar cargo do colaborador selecionado automaticamente
+        # Buscar cargo e região do colaborador selecionado automaticamente
         cargo_colaborador = ""
+        regiao_colaborador = ""
         if colaborador:
             linha_colaborador = df[df.iloc[:, 0] == colaborador]
             if not linha_colaborador.empty:
                 cargo_colaborador = str(linha_colaborador.iloc[0, 8]) if pd.notna(linha_colaborador.iloc[0, 8]) else ""
+                regiao_colaborador = str(linha_colaborador.iloc[0, 12]) if pd.notna(
+                    linha_colaborador.iloc[0, 12]) else ""
+
         st.text_input("Cargo do Colaborador *", value=cargo_colaborador, disabled=True, key="cargo_colaborador_display")
+        st.text_input("Região do Colaborador", value=regiao_colaborador, disabled=True,
+                      key="regiao_colaborador_display")
 
     tipo_avaliacao = st.radio("Avaliação de:", ["40 dias", "80 dias"])
 
@@ -623,7 +683,7 @@ elif menu == "Nova Avaliação":
             dados = (
                 avaliador, colaborador, cargo, cargo_avaliador, "", tipo_avaliacao,
                 adaptacao, interesse, relacionamento, capacidade,
-                classificacao, definicao
+                classificacao, definicao, regiao_avaliador, regiao_colaborador
             )
             salvar_avaliacao(dados)
 
@@ -631,8 +691,10 @@ elif menu == "Nova Avaliação":
             dados_pdf = {
                 'avaliador': avaliador,
                 'cargo_avaliador': cargo_avaliador,
+                'regiao_avaliador': regiao_avaliador,
                 'colaborador': colaborador,
                 'cargo': cargo,
+                'regiao_colaborador': regiao_colaborador,
                 'tipo_avaliacao': tipo_avaliacao,
                 'adaptacao': adaptacao,
                 'interesse': interesse,
@@ -712,21 +774,25 @@ elif menu == "Histórico de Avaliações":
 
                 with col1:
                     st.write(f"**Cargo:** {row['cargo']}")
+                    st.write(f"**Região Colaborador:** {row.get('regiao_colaborador', 'N/A')}")
                     st.write(f"**Data:** {row['data_avaliacao']}")
                     st.write(f"**Classificação:** {row['classificacao']}")
 
                 with col2:
+                    st.write(f"**Avaliador:** {row['avaliador']}")
+                    st.write(f"**Região Avaliador:** {row.get('regiao_avaliador', 'N/A')}")
                     st.write(f"**Definição:** {row['definicao']}")
                     st.write(f"**Adaptação:** {row['adaptacao'][:50]}...")
-                    st.write(f"**Interesse:** {row['interesse'][:50]}...")
 
                 # Botão para gerar PDF da avaliação histórica
                 if st.button(f"📄 Gerar PDF", key=f"pdf_{idx}"):
                     dados_pdf = {
                         'avaliador': row['avaliador'],
                         'cargo_avaliador': row.get('cargo_avaliador', ''),
+                        'regiao_avaliador': row.get('regiao_avaliador', ''),
                         'colaborador': row['colaborador'],
                         'cargo': row['cargo'],
+                        'regiao_colaborador': row.get('regiao_colaborador', ''),
                         'tipo_avaliacao': row['tipo_avaliacao'],
                         'adaptacao': row['adaptacao'],
                         'interesse': row['interesse'],
@@ -772,6 +838,7 @@ st.markdown(
     "<div style='text-align: center; color: #666;'>Sistema de Avaliação de Experiência - Rezende Energia © 2025</div>",
     unsafe_allow_html=True
 )
+
 
 
 
