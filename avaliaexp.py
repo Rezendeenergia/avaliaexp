@@ -386,7 +386,7 @@ def identificar_avaliadores(df):
         'ANALISTA FINANCEIRO', 
         'GERENTE DE QSMS',
         'GESTORA DE DEPARTEMENTO PESSOAL/ RECURSOS HUMANOS',
-        'GESTORA DE DEPARTAMENTO PESSOAL/ RECURSOS HUMANOS'  # variação de escrita
+        'GESTORA DE DEPARTAMENTO PESSOAL/ RECURSOS HUMANOS', 'GERENTE GERAL'  # variação de escrita
     ]
     
     try:
@@ -855,6 +855,7 @@ st.markdown(
     "<div style='text-align: center; color: #666;'>Sistema de Avaliação de Experiência - Rezende Energia © 2025</div>",
     unsafe_allow_html=True
 )
+
 
 
 
