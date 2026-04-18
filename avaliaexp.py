@@ -71,18 +71,12 @@ except FileNotFoundError:
 
 # Função para gerar PDF da avaliação
 def gerar_pdf_avaliacao(dados_avaliacao, nome_arquivo=None):
-    """
-    Gera um PDF da avaliação com a logo da empresa
-    dados_avaliacao: dicionário com os dados da avaliação
-    """
     if nome_arquivo is None:
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         nome_arquivo = f"Avaliacao_{dados_avaliacao['colaborador'].replace(' ', '_')}_{timestamp}.pdf"
 
-    # Criar buffer para o PDF
     buffer = io.BytesIO()
 
-    # Configurar documento
     doc = SimpleDocTemplate(
         buffer,
         pagesize=A4,
@@ -92,13 +86,9 @@ def gerar_pdf_avaliacao(dados_avaliacao, nome_arquivo=None):
         bottomMargin=2 * cm
     )
 
-    # Container para elementos do PDF
     elements = []
-
-    # Estilos
     styles = getSampleStyleSheet()
 
-    # Estilo customizado para título
     titulo_style = ParagraphStyle(
         'CustomTitle',
         parent=styles['Heading1'],
@@ -109,7 +99,6 @@ def gerar_pdf_avaliacao(dados_avaliacao, nome_arquivo=None):
         fontName='Helvetica-Bold'
     )
 
-    # Estilo para subtítulos
     subtitulo_style = ParagraphStyle(
         'CustomSubtitle',
         parent=styles['Heading2'],
@@ -120,7 +109,6 @@ def gerar_pdf_avaliacao(dados_avaliacao, nome_arquivo=None):
         fontName='Helvetica-Bold'
     )
 
-    # Estilo para texto normal
     texto_style = ParagraphStyle(
         'CustomBody',
         parent=styles['BodyText'],
@@ -130,7 +118,6 @@ def gerar_pdf_avaliacao(dados_avaliacao, nome_arquivo=None):
         fontName='Helvetica'
     )
 
-    # Adicionar logo se existir
     if os.path.exists(LOGO_PATH):
         try:
             logo = Image(LOGO_PATH, width=3 * cm, height=1.5 * cm)
@@ -140,11 +127,9 @@ def gerar_pdf_avaliacao(dados_avaliacao, nome_arquivo=None):
         except Exception as e:
             st.warning(f"Não foi possível adicionar a logo: {e}")
 
-    # Título
     elements.append(Paragraph("FICHA DE AVALIAÇÃO DE EXPERIÊNCIA", titulo_style))
     elements.append(Spacer(1, 0.5 * cm))
 
-    # Informações básicas
     data_atual = datetime.now().strftime('%d/%m/%Y')
 
     info_basica = [
@@ -174,7 +159,6 @@ def gerar_pdf_avaliacao(dados_avaliacao, nome_arquivo=None):
     elements.append(table_info)
     elements.append(Spacer(1, 0.8 * cm))
 
-    # Critérios de avaliação
     elements.append(Paragraph("CRITÉRIOS DE AVALIAÇÃO", subtitulo_style))
     elements.append(Spacer(1, 0.3 * cm))
 
@@ -189,7 +173,6 @@ def gerar_pdf_avaliacao(dados_avaliacao, nome_arquivo=None):
         elements.append(Paragraph(f"<b>{titulo}</b>", texto_style))
         elements.append(Spacer(1, 0.2 * cm))
 
-        # Criar tabela para a resposta
         resposta_table = Table([[resposta]], colWidths=[17 * cm])
         resposta_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F5F5F5')),
@@ -201,7 +184,6 @@ def gerar_pdf_avaliacao(dados_avaliacao, nome_arquivo=None):
         elements.append(resposta_table)
         elements.append(Spacer(1, 0.4 * cm))
 
-    # Classificação e Definição
     elements.append(Spacer(1, 0.3 * cm))
 
     classificacao_def = [
@@ -223,7 +205,6 @@ def gerar_pdf_avaliacao(dados_avaliacao, nome_arquivo=None):
     elements.append(table_final)
     elements.append(Spacer(1, 1.5 * cm))
 
-    # Assinaturas
     assinaturas = [
         ['_' * 40, '_' * 40],
         ['Assinatura do Avaliador', 'Assinatura do Presidente'],
@@ -238,10 +219,7 @@ def gerar_pdf_avaliacao(dados_avaliacao, nome_arquivo=None):
 
     elements.append(table_assinatura)
 
-    # Construir PDF
     doc.build(elements)
-
-    # Retornar buffer
     buffer.seek(0)
     return buffer, nome_arquivo
 
@@ -271,19 +249,18 @@ def init_db():
         )
     ''')
 
-    # Verificar e adicionar colunas se não existirem
     try:
         c.execute("SELECT cargo_avaliador FROM avaliacoes LIMIT 1")
     except sqlite3.OperationalError:
         c.execute("ALTER TABLE avaliacoes ADD COLUMN cargo_avaliador TEXT")
         conn.commit()
-    
+
     try:
         c.execute("SELECT regiao_avaliador FROM avaliacoes LIMIT 1")
     except sqlite3.OperationalError:
         c.execute("ALTER TABLE avaliacoes ADD COLUMN regiao_avaliador TEXT")
         conn.commit()
-    
+
     try:
         c.execute("SELECT regiao_colaborador FROM avaliacoes LIMIT 1")
     except sqlite3.OperationalError:
@@ -293,14 +270,13 @@ def init_db():
     conn.close()
 
 
-# Salvar avaliação no banco
 def salvar_avaliacao(dados):
     conn = sqlite3.connect('avaliacoes.db')
     c = conn.cursor()
     c.execute('''
         INSERT INTO avaliacoes (
             avaliador, colaborador, cargo, cargo_avaliador, regional, tipo_avaliacao,
-            adaptacao, interesse, relacionamento, capacidade, 
+            adaptacao, interesse, relacionamento, capacidade,
             classificacao, definicao, regiao_avaliador, regiao_colaborador
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', dados)
@@ -308,7 +284,6 @@ def salvar_avaliacao(dados):
     conn.close()
 
 
-# Buscar avaliações do banco
 def buscar_avaliacoes():
     conn = sqlite3.connect('avaliacoes.db')
     df = pd.read_sql_query("SELECT * FROM avaliacoes ORDER BY data_avaliacao DESC", conn)
@@ -316,12 +291,11 @@ def buscar_avaliacoes():
     return df
 
 
-# Verificar se colaborador já foi avaliado
 def ja_foi_avaliado(colaborador, tipo_avaliacao):
     conn = sqlite3.connect('avaliacoes.db')
     c = conn.cursor()
     c.execute('''
-        SELECT COUNT(*) FROM avaliacoes 
+        SELECT COUNT(*) FROM avaliacoes
         WHERE colaborador = ? AND tipo_avaliacao = ?
     ''', (colaborador, tipo_avaliacao))
     count = c.fetchone()[0]
@@ -344,14 +318,15 @@ def download_excel_sharepoint():
         if "access_token" in result:
             headers = {"Authorization": f"Bearer {result['access_token']}"}
 
-            search_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root/search(q='Base Colaboradores - Rezende Energia.xlsx')"
+            site_url = "https://graph.microsoft.com/v1.0/sites/rezendeenergia.sharepoint.com:/sites/Intranet"
             site_response = requests.get(site_url, headers=headers)
 
             if site_response.status_code == 200:
                 site_data = site_response.json()
                 site_id = site_data['id']
 
-                search_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root/search(q='Base de Colaboradores - Rezende Energia')"
+                # ✅ Nome correto do arquivo
+                search_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root/search(q='Base Colaboradores - Rezende Energia.xlsx')"
                 search_response = requests.get(search_url, headers=headers)
 
                 if search_response.status_code == 200:
@@ -359,12 +334,17 @@ def download_excel_sharepoint():
                     files_found = search_data.get('value', [])
 
                     for item in files_found:
-                        if 'Base de Colaboradores - Rezende Energia' in item['name']:
+                        if 'Base Colaboradores - Rezende Energia' in item['name']:
                             download_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/items/{item['id']}/content"
                             download_response = requests.get(download_url, headers=headers)
 
                             if download_response.status_code == 200:
-                                df = pd.read_excel(io.BytesIO(download_response.content), sheet_name="COLABORADORES ATIVOS")
+                                # ✅ Aba correta
+                                df = pd.read_excel(
+                                    io.BytesIO(download_response.content),
+                                    sheet_name="COLABORADORES ATIVOS"
+                                )
+                                df = df.dropna(how='all').reset_index(drop=True)
                                 return df
         return None
     except Exception as e:
@@ -372,44 +352,38 @@ def download_excel_sharepoint():
         return None
 
 
-# Identificar avaliadores - ATUALIZADO COM NOVOS COORDENADORES
 def identificar_avaliadores(df):
-    # Verificar se df é válido
     if df is None or df.empty:
         return []
-    
+
     cargos_avaliadores = [
-        'SUPERVISOR', 
-        'LIDER DE FROTA', 
-        'GERENTE OPERACIONAL', 
-        'COORDENADOR OPERACIONAL', 
-        'ANALISTA FINANCEIRO', 
+        'SUPERVISOR',
+        'LIDER DE FROTA',
+        'GERENTE OPERACIONAL',
+        'COORDENADOR OPERACIONAL',
+        'ANALISTA FINANCEIRO',
         'GERENTE DE QSMS',
         'GESTORA DE DEPARTEMENTO PESSOAL/ RECURSOS HUMANOS',
-        'GESTORA DE DEPARTAMENTO PESSOAL/ RECURSOS HUMANOS', 'GERENTE GERAL'  # variação de escrita
+        'GESTORA DE DEPARTAMENTO PESSOAL/ RECURSOS HUMANOS',
+        'GERENTE GERAL'
     ]
-    
+
     try:
-        # Buscar avaliadores pelos cargos na planilha
         avaliadores = df[df.iloc[:, 8].str.upper().isin(cargos_avaliadores)]
         lista_avaliadores = avaliadores.iloc[:, 0].tolist()
     except Exception as e:
         st.warning(f"Erro ao buscar avaliadores na planilha: {e}")
         lista_avaliadores = []
-    
-    # Adicionar avaliadores fixos (garantindo que sempre apareçam)
+
     avaliadores_fixos = [
         'GABRIELLE ELLIBOX DE LIRA',
         'VINICIUS OLIVEIRA AMARAL DE SOUZA'
     ]
-    
-    # Combinar listas e remover duplicatas
+
     lista_completa = list(set(lista_avaliadores + avaliadores_fixos))
-    
     return sorted(lista_completa)
 
 
-# Identificar colaboradores para avaliação
 def identificar_colaboradores_para_avaliacao(df):
     hoje = datetime.now()
     colaboradores_40_dias = []
@@ -469,7 +443,7 @@ if df is None:
     st.markdown("""
     - Credenciais Azure AD incorretas ou expiradas
     - Problemas de conexão com a internet
-    - Arquivo 'Base de Colaboradores - Rezende Energia' não encontrado no SharePoint
+    - Arquivo 'Base Colaboradores - Rezende Energia.xlsx' não encontrado no SharePoint
     - Permissões insuficientes no SharePoint
     """)
     st.info("💡 **Soluções:**")
@@ -479,12 +453,11 @@ if df is None:
     3. Verifique se o arquivo existe no SharePoint: Sites > Intranet
     4. Tente recarregar a página
     """)
-    
-    # Mostrar botão para recarregar
+
     if st.button("🔄 Tentar Recarregar", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
-    
+
     st.stop()
 
 if df.empty:
@@ -495,32 +468,23 @@ if df.empty:
 if menu == "Dashboard":
     st.header("📊 Dashboard de Avaliações")
 
-    if df is None or df.empty:
-        st.error("❌ Não foi possível carregar os dados. Verifique a conexão com o SharePoint.")
-        st.stop()
-
     avaliadores = identificar_avaliadores(df)
     colab_40, colab_80 = identificar_colaboradores_para_avaliacao(df)
 
-    # Métricas
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
         st.metric("👥 Avaliadores", len(avaliadores))
-
     with col2:
         st.metric("📋 Avaliações 40 dias", len(colab_40))
-
     with col3:
         st.metric("📋 Avaliações 80 dias", len(colab_80))
-
     with col4:
         total_avaliacoes = len(buscar_avaliacoes())
         st.metric("✅ Avaliações Realizadas", total_avaliacoes)
 
     st.markdown("---")
 
-    # Colaboradores pendentes
     col1, col2 = st.columns(2)
 
     with col1:
@@ -529,8 +493,7 @@ if menu == "Dashboard":
             for col in colab_40:
                 avaliado = ja_foi_avaliado(col['nome'], "40 dias")
                 status = "✅" if avaliado else "⏳"
-                st.write(
-                    f"{status} **[{col['regiao']}] [{col['cargo']}] {col['nome']}** - Admitido em {col['data_admissao']} ({col['dias_empresa']} dias)")
+                st.write(f"{status} **[{col['regiao']}] [{col['cargo']}] {col['nome']}** - Admitido em {col['data_admissao']} ({col['dias_empresa']} dias)")
         else:
             st.info("Nenhum colaborador no período de 40 dias")
 
@@ -540,18 +503,13 @@ if menu == "Dashboard":
             for col in colab_80:
                 avaliado = ja_foi_avaliado(col['nome'], "80 dias")
                 status = "✅" if avaliado else "⏳"
-                st.write(
-                    f"{status} **[{col['regiao']}] [{col['cargo']}] {col['nome']}** - Admitido em {col['data_admissao']} ({col['dias_empresa']} dias)")
+                st.write(f"{status} **[{col['regiao']}] [{col['cargo']}] {col['nome']}** - Admitido em {col['data_admissao']} ({col['dias_empresa']} dias)")
         else:
             st.info("Nenhum colaborador no período de 80 dias")
 
 # NOVA AVALIAÇÃO
 elif menu == "Nova Avaliação":
     st.header("📝 Nova Avaliação de Experiência")
-
-    if df is None or df.empty:
-        st.error("❌ Não foi possível carregar os dados. Verifique a conexão com o SharePoint.")
-        st.stop()
 
     avaliadores = identificar_avaliadores(df)
     todos_colaboradores = sorted(df.iloc[:, 0].dropna().tolist())
@@ -562,36 +520,30 @@ elif menu == "Nova Avaliação":
 
     with col1:
         avaliador = st.selectbox("Supervisor/Coordenador (Avaliador) *", avaliadores)
-        # Buscar cargo e região do avaliador
         cargo_avaliador = ""
         regiao_avaliador = ""
         if avaliador:
-            # Verificar se é um dos avaliadores fixos
             if avaliador == 'GABRIELLE ELLIBOX DE LIRA':
                 cargo_avaliador = 'GESTORA DE DEPARTEMENTO PESSOAL/ RECURSOS HUMANOS'
-                # Buscar região na planilha se existir
                 linha_avaliador = df[df.iloc[:, 0] == avaliador]
                 if not linha_avaliador.empty:
                     regiao_avaliador = str(linha_avaliador.iloc[0, 12]) if pd.notna(linha_avaliador.iloc[0, 12]) else ""
             elif avaliador == 'VINICIUS OLIVEIRA AMARAL DE SOUZA':
                 cargo_avaliador = 'SUPERVISOR'
-                # Buscar região na planilha se existir
                 linha_avaliador = df[df.iloc[:, 0] == avaliador]
                 if not linha_avaliador.empty:
                     regiao_avaliador = str(linha_avaliador.iloc[0, 12]) if pd.notna(linha_avaliador.iloc[0, 12]) else ""
             else:
-                # Buscar na planilha
                 linha_avaliador = df[df.iloc[:, 0] == avaliador]
                 if not linha_avaliador.empty:
                     cargo_avaliador = str(linha_avaliador.iloc[0, 8]) if pd.notna(linha_avaliador.iloc[0, 8]) else ""
                     regiao_avaliador = str(linha_avaliador.iloc[0, 12]) if pd.notna(linha_avaliador.iloc[0, 12]) else ""
-        
+
         st.text_input("Cargo do Avaliador", value=cargo_avaliador, disabled=True, key=f"cargo_avaliador_{avaliador}")
         st.text_input("Região do Avaliador", value=regiao_avaliador, disabled=True, key=f"regiao_avaliador_{avaliador}")
 
     with col2:
         colaborador = st.selectbox("Nome do colaborador *", todos_colaboradores)
-        # Buscar cargo e região do colaborador selecionado automaticamente
         cargo_colaborador = ""
         regiao_colaborador = ""
         if colaborador:
@@ -599,19 +551,18 @@ elif menu == "Nova Avaliação":
             if not linha_colaborador.empty:
                 cargo_colaborador = str(linha_colaborador.iloc[0, 8]) if pd.notna(linha_colaborador.iloc[0, 8]) else ""
                 regiao_colaborador = str(linha_colaborador.iloc[0, 12]) if pd.notna(linha_colaborador.iloc[0, 12]) else ""
-        
+
         st.text_input("Cargo do Colaborador *", value=cargo_colaborador, disabled=True, key=f"cargo_colaborador_{colaborador}")
         st.text_input("Região do Colaborador", value=regiao_colaborador, disabled=True, key=f"regiao_colaborador_{colaborador}")
 
     tipo_avaliacao = st.radio("Avaliação de:", ["40 dias", "80 dias"])
 
     with st.form("formulario_avaliacao"):
-        cargo = cargo_colaborador  # Usar o cargo já identificado
+        cargo = cargo_colaborador
 
         st.markdown("---")
         st.subheader("Critérios de Avaliação")
 
-        # Adaptação ao Trabalho
         st.markdown("**ADAPTAÇÃO AO TRABALHO**")
         adaptacao = st.radio(
             "Selecione uma opção:",
@@ -624,7 +575,6 @@ elif menu == "Nova Avaliação":
             key="adaptacao"
         )
 
-        # Interesse
         st.markdown("**INTERESSE**")
         interesse = st.radio(
             "Selecione uma opção:",
@@ -637,7 +587,6 @@ elif menu == "Nova Avaliação":
             key="interesse"
         )
 
-        # Relacionamento Social
         st.markdown("**RELACIONAMENTO SOCIAL**")
         relacionamento = st.radio(
             "Selecione uma opção:",
@@ -650,7 +599,6 @@ elif menu == "Nova Avaliação":
             key="relacionamento"
         )
 
-        # Capacidade de Aprendizagem
         st.markdown("**CAPACIDADE DE APRENDIZAGEM**")
         capacidade = st.radio(
             "Selecione uma opção:",
@@ -663,7 +611,6 @@ elif menu == "Nova Avaliação":
             key="capacidade"
         )
 
-        # Classificação Geral
         st.markdown("**De maneira geral como o colaborador (a) pode ser classificado?**")
         classificacao = st.radio(
             "Selecione uma opção:",
@@ -676,7 +623,6 @@ elif menu == "Nova Avaliação":
             key="classificacao"
         )
 
-        # Definição
         st.markdown("**Qual a definição a ser tomada?**")
         definicao = st.radio(
             "Selecione uma opção:",
@@ -691,12 +637,10 @@ elif menu == "Nova Avaliação":
         st.markdown("---")
         submitted = st.form_submit_button("💾 Salvar Avaliação e Gerar PDF", use_container_width=True)
 
-    # Processar fora do formulário
     if submitted:
         if not cargo:
             st.error("⚠️ Por favor, selecione um colaborador válido!")
         else:
-            # Salvar no banco
             dados = (
                 avaliador, colaborador, cargo, cargo_avaliador, "", tipo_avaliacao,
                 adaptacao, interesse, relacionamento, capacidade,
@@ -704,7 +648,6 @@ elif menu == "Nova Avaliação":
             )
             salvar_avaliacao(dados)
 
-            # Gerar PDF
             dados_pdf = {
                 'avaliador': avaliador,
                 'cargo_avaliador': cargo_avaliador,
@@ -727,7 +670,6 @@ elif menu == "Nova Avaliação":
                 st.success(f"✅ Avaliação de {colaborador} salva com sucesso!")
                 st.balloons()
 
-                # Botão de download do PDF
                 st.download_button(
                     label="📄 Download PDF da Avaliação",
                     data=pdf_buffer,
@@ -749,7 +691,6 @@ elif menu == "Histórico de Avaliações":
     if len(avaliacoes_df) > 0:
         st.markdown(f"**Total de avaliações registradas:** {len(avaliacoes_df)}")
 
-        # Filtros
         col1, col2, col3 = st.columns(3)
 
         with col1:
@@ -757,34 +698,28 @@ elif menu == "Histórico de Avaliações":
                 "Filtrar por Avaliador",
                 options=avaliacoes_df['avaliador'].unique()
             )
-
         with col2:
             filtro_tipo = st.multiselect(
                 "Filtrar por Tipo",
                 options=avaliacoes_df['tipo_avaliacao'].unique()
             )
-
         with col3:
             filtro_definicao = st.multiselect(
                 "Filtrar por Definição",
                 options=avaliacoes_df['definicao'].unique()
             )
 
-        # Aplicar filtros
         df_filtrado = avaliacoes_df.copy()
 
         if filtro_avaliador:
             df_filtrado = df_filtrado[df_filtrado['avaliador'].isin(filtro_avaliador)]
-
         if filtro_tipo:
             df_filtrado = df_filtrado[df_filtrado['tipo_avaliacao'].isin(filtro_tipo)]
-
         if filtro_definicao:
             df_filtrado = df_filtrado[df_filtrado['definicao'].isin(filtro_definicao)]
 
         st.markdown("---")
 
-        # Mostrar detalhes das avaliações
         for idx, row in df_filtrado.iterrows():
             with st.expander(f"📋 {row['colaborador']} - {row['tipo_avaliacao']} (Avaliado por: {row['avaliador']})"):
                 col1, col2 = st.columns(2)
@@ -801,7 +736,6 @@ elif menu == "Histórico de Avaliações":
                     st.write(f"**Definição:** {row['definicao']}")
                     st.write(f"**Adaptação:** {row['adaptacao'][:50]}...")
 
-                # Botão para gerar PDF da avaliação histórica
                 if st.button(f"📄 Gerar PDF", key=f"pdf_{idx}"):
                     dados_pdf = {
                         'avaliador': row['avaliador'],
@@ -834,7 +768,6 @@ elif menu == "Histórico de Avaliações":
 
         st.markdown("---")
 
-        # Baixar histórico em Excel
         if st.button("📥 Baixar Histórico (Excel)", use_container_width=True):
             output = io.BytesIO()
             with pd.ExcelWriter(output, engine='openpyxl') as writer:
@@ -855,10 +788,3 @@ st.markdown(
     "<div style='text-align: center; color: #666;'>Sistema de Avaliação de Experiência - Rezende Energia © 2025</div>",
     unsafe_allow_html=True
 )
-
-
-
-
-
-
-
