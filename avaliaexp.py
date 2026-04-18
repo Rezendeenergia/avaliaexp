@@ -415,7 +415,7 @@ def identificar_colaboradores_para_avaliacao(df):
             data_admissao = pd.to_datetime(row.iloc[9])
             dias_desde_admissao = (hoje - data_admissao).days
 
-            if 35 <= dias_desde_admissao <= 45:
+            if 30 <= dias_desde_admissao <= 45:
                 colaboradores_40_dias.append({
                     'nome': nome,
                     'cargo': cargo,
@@ -423,7 +423,7 @@ def identificar_colaboradores_para_avaliacao(df):
                     'data_admissao': data_admissao.strftime('%d/%m/%Y'),
                     'dias_empresa': dias_desde_admissao
                 })
-            elif 80 <= dias_desde_admissao <= 90:
+            elif 75 <= dias_desde_admissao <= 90:
                 colaboradores_80_dias.append({
                     'nome': nome,
                     'cargo': cargo,
