@@ -364,7 +364,7 @@ def download_excel_sharepoint():
                             download_response = requests.get(download_url, headers=headers)
 
                             if download_response.status_code == 200:
-                                df = pd.read_excel(io.BytesIO(download_response.content))
+                                df = pd.read_excel(io.BytesIO(download_response.content), sheet_name="COLABORADORES ATIVOS")
                                 return df
         return None
     except Exception as e:
