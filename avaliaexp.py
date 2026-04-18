@@ -330,7 +330,6 @@ def download_excel_sharepoint():
 
         site_id = site_response.json()['id']
 
-        # ✅ Nome correto com "de"
         search_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root/search(q='Base de Colaboradores - Rezende Energia.xlsx')"
         search_response = requests.get(search_url, headers=headers)
 
@@ -341,27 +340,25 @@ def download_excel_sharepoint():
         files_found = search_response.json().get('value', [])
 
         for item in files_found:
-            # ✅ Validação com "de" no nome
             if 'Base de Colaboradores - Rezende Energia' in item['name']:
                 download_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/items/{item['id']}/content"
                 download_response = requests.get(download_url, headers=headers)
 
                 if download_response.status_code == 200:
-                    # ✅ Aba correta
-                    # Tenta pelo nome; se falhar, pega a primeira aba
-                    try:
-                        df = pd.read_excel(
-                            io.BytesIO(download_response.content),
-                            sheet_name="COLABORADORES ATIVOS"
-                        )
-                    except Exception:
-                        xl = pd.ExcelFile(io.BytesIO(download_response.content))
-                        st.warning(f"Aba não encontrada pelo nome. Abas disponíveis: {xl.sheet_names}")
-                        df = pd.read_excel(
-                            io.BytesIO(download_response.content),
-                            sheet_name=0  # primeira aba
-                        )
-                    )
+                    conteudo = io.BytesIO(download_response.content)
+
+                    # ✅ Lê a primeira aba disponível (evita erro de nome exato)
+                    xl = pd.ExcelFile(conteudo)
+                    nome_aba = xl.sheet_names[0]  # pega a primeira aba
+
+                    # Se a aba COLABORADORES ATIVOS existir, usa ela
+                    for aba in xl.sheet_names:
+                        if 'COLABORADORES' in aba.upper() and 'ATIVO' in aba.upper():
+                            nome_aba = aba
+                            break
+
+                    conteudo.seek(0)
+                    df = pd.read_excel(conteudo, sheet_name=nome_aba)
                     df = df.dropna(how='all').reset_index(drop=True)
                     return df
 
@@ -670,10 +667,8 @@ elif menu == "Nova Avaliação":
 
             try:
                 pdf_buffer, pdf_nome = gerar_pdf_avaliacao(dados_pdf)
-
                 st.success(f"✅ Avaliação de {colaborador} salva com sucesso!")
                 st.balloons()
-
                 st.download_button(
                     label="📄 Download PDF da Avaliação",
                     data=pdf_buffer,
@@ -681,7 +676,6 @@ elif menu == "Nova Avaliação":
                     mime="application/pdf",
                     use_container_width=True
                 )
-
             except Exception as e:
                 st.error(f"❌ Erro ao gerar PDF: {e}")
                 st.info("A avaliação foi salva, mas o PDF não pôde ser gerado.")
@@ -759,7 +753,6 @@ elif menu == "Histórico de Avaliações":
 
                     try:
                         pdf_buffer, pdf_nome = gerar_pdf_avaliacao(dados_pdf)
-
                         st.download_button(
                             label="⬇️ Download PDF",
                             data=pdf_buffer,
