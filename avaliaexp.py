@@ -323,37 +323,39 @@ def download_excel_sharepoint():
 
         site_url = "https://graph.microsoft.com/v1.0/sites/rezendeenergia.sharepoint.com:/sites/Intranet"
         site_response = requests.get(site_url, headers=headers)
-        st.write(f"🔎 Site status: {site_response.status_code}")
 
         if site_response.status_code != 200:
-            st.error(f"❌ Erro ao acessar site: {site_response.text}")
+            st.error(f"❌ Erro ao acessar site SharePoint: {site_response.text}")
             return None
 
         site_id = site_response.json()['id']
 
+        # ✅ Nome correto com "de"
         search_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root/search(q='Base de Colaboradores - Rezende Energia.xlsx')"
         search_response = requests.get(search_url, headers=headers)
-        st.write(f"🔎 Search status: {search_response.status_code}")
+
+        if search_response.status_code != 200:
+            st.error(f"❌ Erro na busca do arquivo: {search_response.text}")
+            return None
 
         files_found = search_response.json().get('value', [])
-        st.write(f"🔎 Arquivos encontrados: {[f['name'] for f in files_found]}")
 
         for item in files_found:
+            # ✅ Validação com "de" no nome
             if 'Base de Colaboradores - Rezende Energia' in item['name']:
                 download_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/items/{item['id']}/content"
                 download_response = requests.get(download_url, headers=headers)
-                st.write(f"🔎 Download status: {download_response.status_code}")
 
                 if download_response.status_code == 200:
+                    # ✅ Aba correta
                     df = pd.read_excel(
                         io.BytesIO(download_response.content),
                         sheet_name="COLABORADORES ATIVOS"
                     )
                     df = df.dropna(how='all').reset_index(drop=True)
-                    st.write(f"✅ Shape do DataFrame: {df.shape}")
                     return df
 
-        st.error("❌ Arquivo não encontrado na busca.")
+        st.error("❌ Arquivo 'Base de Colaboradores - Rezende Energia.xlsx' não encontrado no SharePoint.")
         return None
 
     except Exception as e:
@@ -447,26 +449,9 @@ with st.spinner("Carregando dados do SharePoint..."):
     df = download_excel_sharepoint()
 
 if df is None:
-    st.error("❌ Erro ao carregar dados do SharePoint.")
-    st.warning("**Possíveis causas:**")
-    st.markdown("""
-    - Credenciais Azure AD incorretas ou expiradas
-    - Problemas de conexão com a internet
-    - Arquivo 'Base Colaboradores - Rezende Energia.xlsx' não encontrado no SharePoint
-    - Permissões insuficientes no SharePoint
-    """)
-    st.info("💡 **Soluções:**")
-    st.markdown("""
-    1. Verifique o arquivo `.streamlit/secrets.toml`
-    2. Confirme as credenciais: CLIENT_ID, CLIENT_SECRET, TENANT_ID
-    3. Verifique se o arquivo existe no SharePoint: Sites > Intranet
-    4. Tente recarregar a página
-    """)
-
     if st.button("🔄 Tentar Recarregar", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
-
     st.stop()
 
 if df.empty:
