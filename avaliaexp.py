@@ -339,7 +339,7 @@ def download_excel_sharepoint():
         st.write(f"🔎 Arquivos encontrados: {[f['name'] for f in files_found]}")
 
         for item in files_found:
-            if 'Base Colaboradores - Rezende Energia' in item['name']:
+            if 'Base de Colaboradores - Rezende Energia' in item['name']:
                 download_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/items/{item['id']}/content"
                 download_response = requests.get(download_url, headers=headers)
                 st.write(f"🔎 Download status: {download_response.status_code}")
