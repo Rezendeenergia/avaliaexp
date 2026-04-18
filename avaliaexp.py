@@ -315,38 +315,47 @@ def download_excel_sharepoint():
 
         result = app.acquire_token_for_client(scopes=["https://graph.microsoft.com/.default"])
 
-        if "access_token" in result:
-            headers = {"Authorization": f"Bearer {result['access_token']}"}
+        if "access_token" not in result:
+            st.error(f"❌ Falha ao obter token: {result.get('error_description', result)}")
+            return None
 
-            site_url = "https://graph.microsoft.com/v1.0/sites/rezendeenergia.sharepoint.com:/sites/Intranet"
-            site_response = requests.get(site_url, headers=headers)
+        headers = {"Authorization": f"Bearer {result['access_token']}"}
 
-            if site_response.status_code == 200:
-                site_data = site_response.json()
-                site_id = site_data['id']
+        site_url = "https://graph.microsoft.com/v1.0/sites/rezendeenergia.sharepoint.com:/sites/Intranet"
+        site_response = requests.get(site_url, headers=headers)
+        st.write(f"🔎 Site status: {site_response.status_code}")
 
-                # ✅ Nome correto do arquivo
-                search_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root/search(q='Base Colaboradores - Rezende Energia.xlsx')"
-                search_response = requests.get(search_url, headers=headers)
+        if site_response.status_code != 200:
+            st.error(f"❌ Erro ao acessar site: {site_response.text}")
+            return None
 
-                if search_response.status_code == 200:
-                    search_data = search_response.json()
-                    files_found = search_data.get('value', [])
+        site_id = site_response.json()['id']
 
-                    for item in files_found:
-                        if 'Base Colaboradores - Rezende Energia' in item['name']:
-                            download_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/items/{item['id']}/content"
-                            download_response = requests.get(download_url, headers=headers)
+        search_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root/search(q='Base Colaboradores - Rezende Energia.xlsx')"
+        search_response = requests.get(search_url, headers=headers)
+        st.write(f"🔎 Search status: {search_response.status_code}")
 
-                            if download_response.status_code == 200:
-                                # ✅ Aba correta
-                                df = pd.read_excel(
-                                    io.BytesIO(download_response.content),
-                                    sheet_name="COLABORADORES ATIVOS"
-                                )
-                                df = df.dropna(how='all').reset_index(drop=True)
-                                return df
+        files_found = search_response.json().get('value', [])
+        st.write(f"🔎 Arquivos encontrados: {[f['name'] for f in files_found]}")
+
+        for item in files_found:
+            if 'Base Colaboradores - Rezende Energia' in item['name']:
+                download_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/items/{item['id']}/content"
+                download_response = requests.get(download_url, headers=headers)
+                st.write(f"🔎 Download status: {download_response.status_code}")
+
+                if download_response.status_code == 200:
+                    df = pd.read_excel(
+                        io.BytesIO(download_response.content),
+                        sheet_name="COLABORADORES ATIVOS"
+                    )
+                    df = df.dropna(how='all').reset_index(drop=True)
+                    st.write(f"✅ Shape do DataFrame: {df.shape}")
+                    return df
+
+        st.error("❌ Arquivo não encontrado na busca.")
         return None
+
     except Exception as e:
         st.error(f"Erro ao baixar dados: {e}")
         return None
