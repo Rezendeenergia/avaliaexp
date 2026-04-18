@@ -348,9 +348,19 @@ def download_excel_sharepoint():
 
                 if download_response.status_code == 200:
                     # ✅ Aba correta
-                    df = pd.read_excel(
-                        io.BytesIO(download_response.content),
-                        sheet_name="COLABORADORES ATIVOS"
+                    # Tenta pelo nome; se falhar, pega a primeira aba
+                    try:
+                        df = pd.read_excel(
+                            io.BytesIO(download_response.content),
+                            sheet_name="COLABORADORES ATIVOS"
+                        )
+                    except Exception:
+                        xl = pd.ExcelFile(io.BytesIO(download_response.content))
+                        st.warning(f"Aba não encontrada pelo nome. Abas disponíveis: {xl.sheet_names}")
+                        df = pd.read_excel(
+                            io.BytesIO(download_response.content),
+                            sheet_name=0  # primeira aba
+                        )
                     )
                     df = df.dropna(how='all').reset_index(drop=True)
                     return df
