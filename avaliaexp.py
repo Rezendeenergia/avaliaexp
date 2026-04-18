@@ -344,7 +344,7 @@ def download_excel_sharepoint():
         if "access_token" in result:
             headers = {"Authorization": f"Bearer {result['access_token']}"}
 
-            site_url = "https://graph.microsoft.com/v1.0/sites/rezendeenergia.sharepoint.com:/sites/Intranet"
+            search_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root/search(q='Base Colaboradores - Rezende Energia.xlsx')"
             site_response = requests.get(site_url, headers=headers)
 
             if site_response.status_code == 200:
