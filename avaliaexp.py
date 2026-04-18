@@ -331,7 +331,7 @@ def download_excel_sharepoint():
 
         site_id = site_response.json()['id']
 
-        search_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root/search(q='Base Colaboradores - Rezende Energia.xlsx')"
+        search_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root/search(q='Base de Colaboradores - Rezende Energia.xlsx')"
         search_response = requests.get(search_url, headers=headers)
         st.write(f"🔎 Search status: {search_response.status_code}")
 
