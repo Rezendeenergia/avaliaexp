@@ -396,6 +396,7 @@ def identificar_avaliadores(df):
     avaliadores_fixos = [
         'GABRIELLE ELLIBOX DE LIRA',
         'JOSÉ LUÍS SILVA DE LIMA',
+        'JOSIVAN MACIEL DOS REIS',
         'VINICIUS OLIVEIRA AMARAL DE SOUZA'
     ]
 
