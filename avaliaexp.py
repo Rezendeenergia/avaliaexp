@@ -398,6 +398,7 @@ def identificar_avaliadores(df):
         'LEONARDO NANTES ALVES',
         'JOSÉ LUÍS SILVA DE LIMA',
         'JOSIVAN MACIEL DOS REIS',
+        'MARCOS VINICIUS LOPES DE JESUS',
         'VINICIUS OLIVEIRA AMARAL DE SOUZA'
     ]
 
