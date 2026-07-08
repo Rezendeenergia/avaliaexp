@@ -400,6 +400,7 @@ def identificar_avaliadores(df):
         'JOSIVAN MACIEL DOS REIS',
         'MARCOS VINICIUS LOPES DE JESUS',
         'JANILDO PORTILHO DOS SANTOS FILHO',
+        'ELY SAMUEL BENITES DOS SANTOS',
         'VINICIUS OLIVEIRA AMARAL DE SOUZA'
     ]
 
